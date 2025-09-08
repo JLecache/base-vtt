@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+}
+
+.difficulty-badge.vert { @apply bg-green-500 text-white; }
+.difficulty-badge.bleu { @apply bg-blue-500 text-white; }
+.difficulty-badge.rouge { @apply bg-red-500 text-white; }
+.difficulty-badge.noir { @apply bg-gray-900 text-white; }
