@@ -152,8 +152,17 @@ locateBtn.addEventListener('click', () => {
 const routePanel = document.getElementById('route-panel');
 const openPanelBtn = document.getElementById('open-panel-btn');
 const closePanelBtn = document.getElementById('close-panel-btn');
+const openPanelBtn2 = document.getElementById('open-panel-btn-2'); // NOUVEL ÉLÉMENT
 
-openPanelBtn.addEventListener('click', () => routePanel.classList.remove('hidden'));
+// Fonction pour ouvrir le panneau
+const openPanel = () => routePanel.classList.remove('hidden');
+
+// Attacher l'événement au bouton d'origine et au nouveau bouton
+openPanelBtn.addEventListener('click', openPanel);
+if (openPanelBtn2) { // Vérification de l'existence du nouveau bouton
+    openPanelBtn2.addEventListener('click', openPanel);
+}
+
 closePanelBtn.addEventListener('click', () => routePanel.classList.add('hidden'));
 
 // === Gestion du Bottom Sheet ===
@@ -495,8 +504,10 @@ function renderRouteButtons(filteredRoutes) {
         btn.addEventListener('click', () => {
             const selectedDifficulty = btn.getAttribute('data-difficulty');
             loadGPX(route.file, selectedDifficulty);
-            document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('bg-gray-50'));
-            btn.classList.add('bg-gray-50');
+            // Retirer la classe 'bg-orange-100' de tous les boutons
+            document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('bg-orange-100')); 
+            // Ajouter la classe 'bg-orange-100' au bouton cliqué
+            btn.classList.add('bg-orange-100');
 
             if (window.innerWidth < 1024) {
                 routePanel.classList.add('hidden');
