@@ -115,19 +115,19 @@ locateBtn.addEventListener('click', () => {
                         },
                         (error) => {
                             console.error('Erreur:', error);
-                            alert('Impossible de vous localiser.');
+                            showToast('Impossible de vous localiser.', 'error');
                         },
                         { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
                     );
                 },
                 (error) => {
-                    alert('Vérifiez que vous avez autorisé la géolocalisation.');
+                    showToast('Vérifiez que vous avez autorisé la géolocalisation.', 'info');
                     locateBtn.classList.remove('bg-blue-500');
                     locateBtn.querySelector('.material-icons').classList.remove('text-white');
                 }
             );
         } else {
-            alert('Géolocalisation non supportée.');
+            showToast('Géolocalisation non supportée.', 'error');
         }
     } else {
         if (watchId !== null) {
@@ -162,10 +162,10 @@ openPanelBtn.addEventListener('click', openPanel);
 if (openPanelBtn2) { // Vérification de l'existence du nouveau bouton
     openPanelBtn2.addEventListener('click', openPanel);
 }
-
 closePanelBtn.addEventListener('click', () => routePanel.classList.add('hidden'));
 
-// === Gestion du Bottom Sheet ===
+
+// === Gestion du Bottom Sheet (Mise à jour pour un swipe intuitif) ===
 const bottomSheet = document.getElementById('bottom-sheet');
 const bottomSheetHandle = document.getElementById('bottom-sheet-handle');
 const closeBottomSheet = document.getElementById('close-bottom-sheet');
@@ -174,6 +174,7 @@ let sheetState = 'collapsed'; // collapsed, expanded, fullscreen
 let startY = 0;
 let currentY = 0;
 let isDragging = false;
+let hasDragged = false;
 
 function setSheetState(state) {
     bottomSheet.classList.remove('collapsed', 'expanded', 'fullscreen');
@@ -181,25 +182,27 @@ function setSheetState(state) {
     sheetState = state;
 }
 
-// Gestion du touch pour le swipe
-bottomSheetHandle.addEventListener('touchstart', (e) => {
+// Gestion du touch pour le swipe (APPLIQUÉ AU CONTENEUR ENTIER)
+bottomSheet.addEventListener('touchstart', (e) => {
     isDragging = true;
+    hasDragged = false;
     startY = e.touches[0].clientY;
     bottomSheet.style.transition = 'none';
 });
 
-bottomSheetHandle.addEventListener('touchmove', (e) => {
+bottomSheet.addEventListener('touchmove', (e) => {
     if (!isDragging) return;
     
     currentY = e.touches[0].clientY;
     const deltaY = currentY - startY;
     
-    // Empêcher le scroll de la page
+    // Empêcher le scroll de la page si c'est un glissement vertical suffisant
     if (Math.abs(deltaY) > 5) {
         e.preventDefault();
+        hasDragged = true;
     }
     
-    // Limiter le mouvement
+    // Limiter le mouvement (Maintien de la logique originale d'affichage temporaire)
     if (deltaY > 0) { // Vers le bas
         const maxDelta = window.innerHeight * 0.7;
         const clampedDelta = Math.min(deltaY, maxDelta);
@@ -211,42 +214,35 @@ bottomSheetHandle.addEventListener('touchmove', (e) => {
     }
 });
 
-bottomSheetHandle.addEventListener('touchend', (e) => {
+bottomSheet.addEventListener('touchend', (e) => {
     if (!isDragging) return;
     
     isDragging = false;
     bottomSheet.style.transition = '';
     
     const deltaY = currentY - startY;
-    const threshold = 50;
+    const threshold = 50; // Seuil de glissement minimum
+
+    let targetState = sheetState;
     
-    if (Math.abs(deltaY) < threshold) {
-        // Petit mouvement = toggle entre états
-        if (sheetState === 'collapsed') {
-            setSheetState('expanded');
-        } else if (sheetState === 'expanded') {
-            setSheetState('fullscreen');
-        } else {
-            setSheetState('collapsed');
-        }
-    } else {
-        // Grand mouvement = suivre la direction
+    if (hasDragged) {
         if (deltaY > threshold) {
-            // Swipe vers le bas
+            // Swipe vers le bas (réduire l'état)
             if (sheetState === 'fullscreen') {
-                setSheetState('expanded');
+                targetState = 'expanded';
             } else if (sheetState === 'expanded') {
-                setSheetState('collapsed');
+                targetState = 'collapsed';
             }
         } else if (deltaY < -threshold) {
-            // Swipe vers le haut
+            // Swipe vers le haut (augmenter l'état)
             if (sheetState === 'collapsed') {
-                setSheetState('expanded');
+                targetState = 'expanded';
             } else if (sheetState === 'expanded') {
-                setSheetState('fullscreen');
+                targetState = 'fullscreen';
             }
         }
-    }
+        setSheetState(targetState); // Appliquer le nouvel état
+    } 
     
     bottomSheet.style.transform = '';
 });
@@ -260,13 +256,11 @@ function getTransformValue(state) {
     }
 }
 
-// Click sur le handle pour toggle
+// Click sur le handle pour toggle (SIMPLIFIÉ : toggle entre collapsed et expanded)
 bottomSheetHandle.addEventListener('click', () => {
     if (sheetState === 'collapsed') {
         setSheetState('expanded');
-    } else if (sheetState === 'expanded') {
-        setSheetState('fullscreen');
-    } else {
+    } else { // Si expanded ou fullscreen, on collapse
         setSheetState('collapsed');
     }
 });
@@ -361,10 +355,12 @@ function loadGPX(filename, difficulty) {
         }
         const totalDistanceKm = totalDistance / 1000;
         
+        // Nouvelle structure HTML des stats
         const statsHTML = `
-            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-green-500 mr-1 text-base">trending_up</span>D+</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationGain)} m</p></div>
-            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-red-500 mr-1 text-base">trending_down</span>D-</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationLoss)} m</p></div>
-            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-blue-500 mr-1 text-base">landscape</span>Max</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationMax)} m</p></div>
+            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-green-500 mr-1 text-base">arrow_upward</span>D+ (Gain)</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationGain)} m</p></div>
+            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-red-500 mr-1 text-base">arrow_downward</span>D- (Perte)</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationLoss)} m</p></div>
+            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-blue-500 mr-1 text-base">arrow_upward</span>Alt. Max</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationMax)} m</p></div>
+            <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-blue-500 mr-1 text-base">arrow_downward</span>Alt. Min</p><p class="text-xl font-bold text-gray-800">${Math.round(elevationMin)} m</p></div>
             <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500 uppercase flex items-center justify-center"><span class="material-icons text-purple-500 mr-1 text-base">route</span>Distance</p><p class="text-xl font-bold text-gray-800">${totalDistanceKm.toFixed(2)} km</p></div>
         `;
         
@@ -385,10 +381,11 @@ function loadGPX(filename, difficulty) {
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            showToast('Fichier GPX téléchargé !', 'success'); // Remplacement de l'alerte
         };
         const shareAction = () => {
             navigator.clipboard.writeText(window.location.href);
-            alert("Le lien a été copié dans votre presse-papiers !");
+            showToast('Lien du parcours copié !', 'info'); // Remplacement de l'alerte
         };
         
         document.getElementById('download-gpx').onclick = downloadAction;
@@ -504,10 +501,8 @@ function renderRouteButtons(filteredRoutes) {
         btn.addEventListener('click', () => {
             const selectedDifficulty = btn.getAttribute('data-difficulty');
             loadGPX(route.file, selectedDifficulty);
-            // Retirer la classe 'bg-orange-100' de tous les boutons
-            document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('bg-orange-100')); 
-            // Ajouter la classe 'bg-orange-100' au bouton cliqué
-            btn.classList.add('bg-orange-100');
+            document.querySelectorAll('.route-btn').forEach(b => b.classList.remove('bg-gray-50'));
+            btn.classList.add('bg-gray-50');
 
             if (window.innerWidth < 1024) {
                 routePanel.classList.add('hidden');
@@ -558,3 +553,42 @@ document.addEventListener('DOMContentLoaded', () => {
         emptyState.style.opacity = '1';
     }
 });
+
+// === Fonction utilitaire pour Toast Notifications ===
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    let bgColor = 'bg-green-500';
+    let icon = 'check_circle';
+
+    if (type === 'info') {
+        bgColor = 'bg-blue-500';
+        icon = 'info';
+    } else if (type === 'error') {
+        bgColor = 'bg-red-500';
+        icon = 'error';
+    }
+
+    toast.className = `p-3 rounded-lg text-white shadow-lg flex items-center ${bgColor} transition-all duration-300 ease-out transform translate-y-full opacity-0`;
+    toast.innerHTML = `
+        <span class="material-icons mr-2">${icon}</span>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    // Animer l'entrée
+    setTimeout(() => {
+        toast.classList.remove('translate-y-full', 'opacity-0');
+    }, 10);
+
+    // Animer la sortie après 3 secondes
+    setTimeout(() => {
+        toast.classList.add('opacity-0');
+        // Supprimer après la transition de sortie
+        setTimeout(() => {
+            container.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
